@@ -31,7 +31,7 @@ def init_wb(layers):
 	np.random.seed(1)
 	parameters={}
 	for i in range(1,len(layers)):
-		parameters['W'+str(i)]=np.random.randn(layers[i],layers[i-1])//np.sqrt(layers[i-1])
+		parameters['W'+str(i)]=np.random.randn(layers[i],layers[i-1])/np.sqrt(layers[i-1])
 		parameters['b'+str(i)]=np.zeros((layers[i],1))
 	return parameters#[w1,b1,w2,b2....wn,wn],n=layers-1
 
@@ -51,8 +51,6 @@ def model_L_forward(X,parameters):
 	caches=[]
 	L=len(parameters)//2
 	for i in range(1,L):
-		print(i)
-		print(A_pre)
 		A,cache=linear_forward(A_pre,
 							parameters['W'+str(i)],
 							parameters['b'+str(i)],
@@ -67,21 +65,23 @@ def model_L_forward(X,parameters):
 	assert(A.shape==(1,X.shape[1]))
 	caches.append(cache)
 	return A,caches
-parameters=init_wb(layers_dims)
-A,caches=model_L_forward(train_x,parameters)
-print(A)
-exit()
+#parameters=init_wb(layers_dims)
+
+#A,caches=model_L_forward(train_x,parameters)
+
+
 def compute_cost(A,Y):
 	m=Y.shape[1]
 	cost=-np.sum(np.multiply(Y,np.log(A))+np.multiply((1-Y),np.log(1-A)))/m
 	cost=np.squeeze(cost)
 	assert(cost.shape==())
 	return cost
+#cost=compute_cost(A,train_y)
 
 def linear_backward(dA,L,cache,activation):
 	A_pre,W,b=cache[0]
 	Z=cache[1]
-	m=L
+	m=A_pre.shape[1]
 	if activation=='relu':
 		dZ=relu_backward(dA,Z)
 	elif activation=='sigmoid':
@@ -122,7 +122,9 @@ def model_L_backward(AL,Y,caches):
 		grads['dA'+str(i-1)],grads['dW'+str(i)],grads['db'+str(i)]=linear_backward(grads['dA'+str(i)],L,
 															caches[i-1],activation='relu')
 	return grads
-
+#grads=model_L_backward(A,train_y,caches)
+#print(grads)
+#exit()
 # AL, Y_assess, caches = L_model_backward_test_case()
 # grads = model_L_backward(AL, Y_assess, caches)
 # print ("dW1 = "+ str(grads["dW1"]))
@@ -154,13 +156,11 @@ def dnn_model(X,Y,layers,num_iter=3000,learning_rate=0.0075,print_cost=False):
 		cost=compute_cost(AL,Y)
 		grads=model_L_backward(AL,Y,caches)
 		parameters=update_parameters(parameters,grads,learning_rate)
-		if i==0:
-			print(AL.shape)
 		if i%500==0:
 			if print_cost and i>0:
 				print('After %i times training,the cost is :%f'%(i,cost))
 				costs.append(cost)
-				print('AL='+str(AL))
+				#
 	plt.plot(np.squeeze(costs))
 	plt.ylabel('cost')
 	plt.xlabel('iterations (per tens)')
@@ -170,3 +170,23 @@ def dnn_model(X,Y,layers,num_iter=3000,learning_rate=0.0075,print_cost=False):
 
 # 根据上面的层次信息来构建一个深度神经网络，并且用之前加载的数据集来训练这个神经网络，得出训练后的参数
 parameters = dnn_model(train_x, train_y, layers_dims, num_iter=2000, print_cost=True)
+
+def predict(X,parameters):
+	m=X.shape[1]#
+	n=len(parameters)//2#number of layers
+	p=np.zeros((1,m))
+	
+	probs,caches=model_L_forward(X,parameters)
+	
+	for i in range(0,probs.shape[1]):
+		if probs[0,i]>0.5:
+			p[0,i]=1
+		else:
+			p[0,i]=0
+	return p
+
+pred_train=predict(train_x,parameters)
+print('The Accuracy '+str(np.sum((pred_train==train_y)/train_x.shape[1])))
+
+pred_test=predict(test_x,parameters)
+print('The Accuracy '+str(np.sum((pred_test==test_y)/test_x.shape[1])))
